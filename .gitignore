@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+00_admin/
+01_data/raw/
+03_output/
+
+.DS_Store
+Thumbs.db
