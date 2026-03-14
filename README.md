@@ -1,5 +1,7 @@
 # SkillEngine (v1.0)
 
+Python analytics pipeline for evaluating MLB player skill using Statcast leaderboard data and percentile-based scoring models.
+
 SkillEngine is a controlled baseball analytics project focused on **core player skill only**.
 
 It produces percentile-based skill scores for qualified hitters and pitchers using **Baseball Savant leaderboard data** and exports ranked lists including Top 50 outputs.
@@ -13,6 +15,16 @@ The system is implemented as a **reproducible Python pipeline** capable of proce
 - Build a resume-ready analytics engineering project with clear scope boundaries, repeatable outputs, and versioned changes.
 - Provide a reusable **core skill model** that can serve as the baseline layer for future matchup/context modeling.
 - Establish a reproducible pipeline that can process **historical seasons and future seasons without code changes**.
+
+---
+
+## Tech Stack
+
+- Python
+- Pandas
+- CSV data processing
+- Baseball Savant leaderboard exports
+- Deterministic ranking algorithms
 
 ---
 
