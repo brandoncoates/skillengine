@@ -5,7 +5,8 @@ __pycache__/
 
 00_admin/
 01_data/raw/
-03_output/
+03_output/*
+!03_output/.gitkeep
 
 .DS_Store
 Thumbs.db
