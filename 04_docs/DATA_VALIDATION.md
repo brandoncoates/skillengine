@@ -154,3 +154,25 @@ These validation checks protect the SkillEngine pipeline from:
 * missing statistics
 * incorrect derived metrics
 * corrupted ranking outputs
+
+---
+
+# Known Issues
+
+### Character Encoding (Statcast Exports)
+
+Some Statcast CSV exports occasionally produce UTF-8 encoding artifacts
+for player names containing accented characters.
+
+Examples:
+
+* "JosÃ© Abreu" instead of "José Abreu"
+* "MartÃ­n Maldonado" instead of "Martín Maldonado"
+* "AcuÃ±a Jr." instead of "Acuña Jr."
+
+This issue does **not affect model accuracy or data integrity** because
+SkillEngine uses `player_id` as the unique identifier for all joins
+and historical tracking.
+
+Name normalization and encoding cleanup will be handled later during
+the **final modeling dataset preparation stage**.
