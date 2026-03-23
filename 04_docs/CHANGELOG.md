@@ -1,17 +1,50 @@
-# SkillEngine Changelog
-
 This document tracks structural, data, and logic changes to the SkillEngine project.
 
 SkillEngine = core skill model only (no matchup context).
 
 ---
 
-## Architecture (Current State as of 1.1)
+## Architecture (Current State as of 1.2)
 
 * Storage Layer: Flat CSV files
 * Compute Layer: Python (local environment using .venv)
 * Data Source: Baseball Savant CSV exports
 * Scope Boundary: Core skill metrics only (no matchup or contextual data)
+
+---
+
+## [1.2] - 2026-03-22
+
+### Change Type
+
+Feature / Analysis
+
+### What Changed
+
+* Implemented trend analysis layer for both hitters and pitchers.
+* Created hitter trends script: `analyze_hitter_trends.py`
+* Created pitcher trends script: `analyze_pitcher_trends.py`
+* Added year-over-year SkillScore comparison logic.
+
+### Why It Changed
+
+* Establish a foundation for identifying player performance direction (improving vs declining).
+* Enable future modeling and prediction based on historical skill movement.
+
+### Validation Performed
+
+* Verified trend calculations for multiple players across seasons.
+* Confirmed correct sorting by `player_id` and `season`.
+* Manually validated:
+  * Previous season SkillScore (`prev_SkillScore_v1`)
+  * Skill score delta (`SkillScore_delta`)
+  * Trend flags (`declining`, `improving`)
+* Confirmed outputs generate without errors for both hitters and pitchers.
+
+### Outputs Affected
+
+* 03_output/hitter_trends_v1.csv
+* 03_output/pitcher_trends_v1.csv
 
 ---
 
