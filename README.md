@@ -271,3 +271,25 @@ CHANGELOG.md
 ```
 
 for versioned model changes, validation notes, and architectural updates.
+
+---
+
+## Trend Analysis (v1.2)
+
+SkillEngine now includes trend analysis for both hitters and pitchers.
+
+This looks at how a player’s SkillScore changes year-to-year.
+
+Scripts:
+- analyze_hitter_trends.py
+- analyze_pitcher_trends.py
+
+Outputs:
+- hitter_trends_v1.csv
+- pitcher_trends_v1.csv
+
+New columns:
+- prev_SkillScore_v1
+- SkillScore_delta
+- declining
+- improving
