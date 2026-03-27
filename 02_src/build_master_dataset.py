@@ -6,6 +6,7 @@ HITTER_RENAME = {
     "pa": "PA",
     "ab": "AB",
     "hit": "H",
+    "single": "1B",
     "double": "2B",
     "triple": "3B",
     "home_run": "HR",
@@ -15,6 +16,9 @@ HITTER_RENAME = {
     "slg_percent": "SLG",
     "k_percent": "K_pct",
     "bb_percent": "BB_pct",
+    "b_rbi": "RBI",
+    "r_run": "R",
+    "r_total_stolen_base": "SB",
 }
 
 PITCHER_RENAME = {
@@ -34,6 +38,7 @@ REQUIRED_HITTER_COLS = [
     "pa",
     "ab",
     "hit",
+    "single",
     "double",
     "triple",
     "home_run",
@@ -42,6 +47,9 @@ REQUIRED_HITTER_COLS = [
     "on_base_percent",
     "slg_percent",
     "k_percent",
+    "b_rbi",
+    "r_run",
+    "r_total_stolen_base",
 ]
 
 REQUIRED_PITCHER_COLS = [

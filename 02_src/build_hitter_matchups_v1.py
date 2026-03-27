@@ -37,7 +37,7 @@ def main():
 
     output_path = os.path.join(
         base_dir,
-        f"../03_output/hitter_matchups_{slate_date}.csv"
+        f"../03_output/hitter_matchups_dfs_{slate_date}.csv"
     )
 
     # =========================================================
@@ -81,13 +81,15 @@ def main():
         "Nickname",
         "Team",
         "Opponent",
-        "Salary"
+        "Salary",
+        "Position"
     ]].copy()
 
     hitters = hitters.rename(columns={
         "Nickname": "player_name",
         "Team": "team",
-        "Opponent": "opponent"
+        "Opponent": "opponent",
+        "Position": "position"
     })
 
     # =========================================================
@@ -107,6 +109,7 @@ def main():
 
     merged = merged[[
         "player_name",
+        "position",
         "team",
         "opponent",
         "opposing_pitcher",
