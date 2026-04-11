@@ -1,0 +1,31 @@
+team,team_full,stadium,city,state,lat,lon,roof_type
+ARI,Arizona Diamondbacks,Chase Field,Phoenix,AZ,33.4453,-112.0667,retractable
+ATL,Atlanta Braves,Truist Park,Atlanta,GA,33.8907,-84.4677,open
+BAL,Baltimore Orioles,Oriole Park at Camden Yards,Baltimore,MD,39.2839,-76.6217,open
+BOS,Boston Red Sox,Fenway Park,Boston,MA,42.3467,-71.0972,open
+CHC,Chicago Cubs,Wrigley Field,Chicago,IL,41.9484,-87.6553,open
+CHW,Chicago White Sox,Guaranteed Rate Field,Chicago,IL,41.83,-87.6338,open
+CIN,Cincinnati Reds,Great American Ball Park,Cincinnati,OH,39.0975,-84.5078,open
+CLE,Cleveland Guardians,Progressive Field,Cleveland,OH,41.4962,-81.6852,open
+COL,Colorado Rockies,Coors Field,Denver,CO,39.7559,-104.9942,open
+DET,Detroit Tigers,Comerica Park,Detroit,MI,42.339,-83.0485,open
+HOU,Houston Astros,Minute Maid Park,Houston,TX,29.7573,-95.3555,retractable
+KC,Kansas City Royals,Kauffman Stadium,Kansas City,MO,39.0517,-94.4803,open
+LAA,Los Angeles Angels,Angel Stadium,Anaheim,CA,33.8003,-117.8827,open
+LAD,Los Angeles Dodgers,Dodger Stadium,Los Angeles,CA,34.0739,-118.24,open
+MIA,Miami Marlins,loanDepot Park,Miami,FL,25.7781,-80.2197,retractable
+MIL,Milwaukee Brewers,American Family Field,Milwaukee,WI,43.028,-87.9712,retractable
+MIN,Minnesota Twins,Target Field,Minneapolis,MN,44.9817,-93.2773,open
+NYM,New York Mets,Citi Field,New York,NY,40.7571,-73.8458,open
+NYY,New York Yankees,Yankee Stadium,New York,NY,40.8296,-73.9262,open
+OAK,Oakland Athletics,Sutter Health Park,West Sacramento,CA,38.5802,-121.5302,open
+PHI,Philadelphia Phillies,Citizens Bank Park,Philadelphia,PA,39.9061,-75.1665,open
+PIT,Pittsburgh Pirates,PNC Park,Pittsburgh,PA,40.4469,-80.0057,open
+SD,San Diego Padres,Petco Park,San Diego,CA,32.7073,-117.1566,open
+SF,San Francisco Giants,Oracle Park,San Francisco,CA,37.7786,-122.3893,open
+SEA,Seattle Mariners,T-Mobile Park,Seattle,WA,47.5914,-122.3325,retractable
+STL,St. Louis Cardinals,Busch Stadium,St. Louis,MO,38.6226,-90.1928,open
+TB,Tampa Bay Rays,Tropicana Field,St. Petersburg,FL,27.7683,-82.6534,dome
+TEX,Texas Rangers,Globe Life Field,Arlington,TX,32.7473,-97.0847,retractable
+TOR,Toronto Blue Jays,Rogers Centre,Toronto,ON,43.6414,-79.3894,retractable
+WSH,Washington Nationals,Nationals Park,Washington,DC,38.873,-77.0074,open

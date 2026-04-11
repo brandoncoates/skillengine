@@ -42,10 +42,41 @@ def main():
     actual = pd.read_csv(actual_path)
 
     # -----------------------------
+    # LOAD DFS MANUAL HELPER
+    # -----------------------------
+    helper_path = os.path.join(base_dir, f"../03_output/dfs_manual_helper_{slate_date}.xlsx")
+
+    pitchers_helper = pd.read_excel(helper_path, sheet_name="Pitchers")
+    stacks_helper = pd.read_excel(helper_path, sheet_name="Stacks")
+    top_hitters_helper = pd.read_excel(helper_path, sheet_name="Top Hitters")
+    by_position_helper = pd.read_excel(helper_path, sheet_name="By Position")
+
+    # -----------------------------
     # CLEAN NAMES
     # -----------------------------
     proj["player_name"] = proj["player_name"].str.strip().str.lower()
     actual["player_name"] = actual["player_name"].str.strip().str.lower()
+
+    pitchers_helper["player_name"] = pitchers_helper["player_name"].str.strip().str.lower()
+    stacks_helper["player_name"] = stacks_helper["player_name"].str.strip().str.lower()
+    top_hitters_helper["player_name"] = top_hitters_helper["player_name"].str.strip().str.lower()
+    by_position_helper["player_name"] = by_position_helper["player_name"].str.strip().str.lower()
+
+    # -----------------------------
+    # BUILD RECOMMENDATION MAP
+    # -----------------------------
+    recommendation_map = {}
+
+    def add_source(df, source_tag):
+        for name in df["player_name"].dropna().unique():
+            if name not in recommendation_map:
+                recommendation_map[name] = set()
+            recommendation_map[name].add(source_tag)
+
+    add_source(pitchers_helper, "PITCHER")
+    add_source(stacks_helper, "STACK")
+    add_source(top_hitters_helper, "TOP_PLAY")
+    add_source(by_position_helper, "POSITION")
 
     # -----------------------------
     # LOAD FANDUEL SLATE
@@ -53,16 +84,11 @@ def main():
     fanduel_path = os.path.join(base_dir, f"../01_data/raw/fanduel/FanDuel-MLB-{slate_date}.csv")
     fanduel = pd.read_csv(fanduel_path)
 
-    # Normalize names
     fanduel["player_name"] = (
         fanduel["First Name"].str.strip().str.lower() + " " +
         fanduel["Last Name"].str.strip().str.lower()
     )
 
-    # Add Position from FanDuel
-    fanduel["Position"] = fanduel["Position"]
-
-    # Keep only player names
     fanduel_players = set(fanduel["player_name"])
 
     # -----------------------------
@@ -74,7 +100,6 @@ def main():
         how="left"
     )
 
-    # Merge in Position from FanDuel
     merged = merged.merge(
         fanduel[["player_name", "Position"]],
         on="player_name",
@@ -90,48 +115,142 @@ def main():
     # CALCULATIONS
     # -----------------------------
     merged["point_diff"] = merged["actual_fd_points"] - merged["projected_fd_points"]
+    merged["abs_point_diff"] = merged["point_diff"].abs()
+
     merged["pct_diff"] = merged["point_diff"] / merged["projected_fd_points"]
+    merged["abs_pct_diff"] = merged["pct_diff"].abs()
 
     # -----------------------------
-    # RESULT LABEL
+    # PROJECTION DIRECTION
     # -----------------------------
-    def label(row):
+    def get_direction(row):
         if pd.isna(row["actual_fd_points"]):
-            return "DNP"
-        elif row["actual_fd_points"] >= row["projected_fd_points"]:
-            return "HIT"
-        elif row["actual_fd_points"] >= row["projected_fd_points"] * 0.8:
-            return "NEUTRAL"
+            return "NO_DATA"
+        if abs(row["point_diff"]) <= 1:
+            return "ON_TARGET"
+        elif row["point_diff"] > 0:
+            return "UNDER_PROJECTED"
         else:
-            return "MISS"
+            return "OVER_PROJECTED"
 
-    merged["result"] = merged.apply(label, axis=1)
+    merged["projection_direction"] = merged.apply(get_direction, axis=1)
 
     # -----------------------------
-    # HIT FLAG (FOR TRACKING)
+    # PROJECTION ACCURACY BUCKET
     # -----------------------------
-    merged["hit_flag"] = (merged["result"] == "HIT").astype(int)
+    def get_accuracy(row):
+        if pd.isna(row["actual_fd_points"]):
+            return "NO_DATA"
+
+        diff = row["abs_point_diff"]
+        pos = str(row["Position"]).upper()
+
+        if "P" in pos:
+            if diff <= 4:
+                return "ELITE"
+            elif diff <= 8:
+                return "GOOD"
+            elif diff <= 12:
+                return "OK"
+            elif diff <= 18:
+                return "BAD"
+            else:
+                return "VERY_BAD"
+        else:
+            if diff <= 2:
+                return "ELITE"
+            elif diff <= 5:
+                return "GOOD"
+            elif diff <= 8:
+                return "OK"
+            elif diff <= 12:
+                return "BAD"
+            else:
+                return "VERY_BAD"
+
+    merged["projection_accuracy_bucket"] = merged.apply(get_accuracy, axis=1)
+
+    # -----------------------------
+    # DFS PAYOFF CALCULATIONS
+    # -----------------------------
+    merged["points_per_1000"] = merged["actual_fd_points"] / (merged["Salary"] / 1000)
+
+    def get_payoff(row):
+        if pd.isna(row["actual_fd_points"]):
+            return "NO_DATA"
+
+        val = row["points_per_1000"]
+        pos = str(row["Position"]).upper()
+
+        if "P" in pos:
+            if val >= 3.0:
+                return "SMASH"
+            elif val >= 2.5:
+                return "GREAT"
+            elif val >= 2.0:
+                return "GOOD"
+            else:
+                return "FAIL"
+        else:
+            if val >= 4.5:
+                return "SMASH"
+            elif val >= 3.5:
+                return "GREAT"
+            elif val >= 2.5:
+                return "GOOD"
+            else:
+                return "FAIL"
+
+    merged["payoff_tier"] = merged.apply(get_payoff, axis=1)
+
+    merged["did_pay_off"] = (merged["payoff_tier"].isin(["GOOD", "GREAT", "SMASH"])).astype(int)
+
+    # -----------------------------
+    # RECOMMENDATION FLAGS
+    # -----------------------------
+    def get_sources(name):
+        if name in recommendation_map:
+            return "|".join(sorted(recommendation_map[name]))
+        return ""
+
+    merged["was_recommended"] = merged["player_name"].apply(
+        lambda x: 1 if x in recommendation_map else 0
+    )
+
+    merged["recommendation_source"] = merged["player_name"].apply(get_sources)
+
+    # -----------------------------
+    # DECISION QUALITY (NOW CORRECTLY PLACED)
+    # -----------------------------
+    def decision_quality(row):
+
+        if row["payoff_tier"] == "NO_DATA":
+            return "NO_DATA"
+
+        if row["payoff_tier"] == "GOOD":
+            return "NEUTRAL_PLAY"
+
+        if row["was_recommended"] == 1 and row["did_pay_off"] == 1:
+            return "GOOD_PICK"
+
+        if row["was_recommended"] == 1 and row["did_pay_off"] == 0:
+            return "BAD_PICK"
+
+        if row["was_recommended"] == 0 and row["did_pay_off"] == 1:
+            return "MISSED_UPSIDE"
+
+        if row["was_recommended"] == 0 and row["did_pay_off"] == 0:
+            return "CORRECT_FADE"
+
+        return "UNKNOWN"
+
+    merged["decision_quality"] = merged.apply(decision_quality, axis=1)
 
     # -----------------------------
     # SAVE
     # -----------------------------
     output_path = os.path.join(base_dir, f"../03_output/dfs_recap_{slate_date}.csv")
-    
-    # -----------------------------
-    # RESULT RANK (FOR SORTING)
-    # -----------------------------
-    result_map = {
-        "HIT": 1,
-        "NEUTRAL": 2,
-        "MISS": 3,
-        "DNP": 4
-    }
 
-    merged["result_rank"] = merged["result"].map(result_map)
-
-    # -----------------------------
-    # SELECT FINAL COLUMNS (CLEAN OUTPUT)
-    # -----------------------------
     final_cols = [
         "player_name",
         "Position",
@@ -140,31 +259,32 @@ def main():
         "Salary",
         "projected_fd_points",
         "value_score",
+        "was_recommended",
+        "recommendation_source",
         "actual_fd_points",
         "point_diff",
+        "abs_point_diff",
         "pct_diff",
-        "result",
-        "result_rank",
-        "hit_flag"
+        "abs_pct_diff",
+        "projection_direction",
+        "projection_accuracy_bucket",
+        "points_per_1000",
+        "payoff_tier",
+        "did_pay_off",
+        "decision_quality"
     ]
 
     merged = merged[final_cols]
 
-    # Sort by result_rank (then best performers within each group)
-    merged = merged.sort_values(
-        by=["result_rank", "point_diff"],
-        ascending=[True, False]
-    )
+    merged = merged.sort_values(by=["point_diff"], ascending=False)
 
     merged.to_csv(output_path, index=False)
 
     print(f"\nDFS recap saved to: {output_path}")
 
-    # -----------------------------
-    # SUMMARY
-    # -----------------------------
     print("\nSUMMARY:")
-    print(merged["result"].value_counts())
+    print("Rows:", len(merged))
+
 
 if __name__ == "__main__":
     main()

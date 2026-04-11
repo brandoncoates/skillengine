@@ -28,9 +28,12 @@ def main():
     # -----------------------------
     tracker_df = recap[[
         "player_name",
-        "Position",
         "team",
-        "hit_flag"
+        "actual_fd_points",
+        "projected_fd_points",
+        "point_diff",
+        "projection_direction",
+        "projection_accuracy_bucket"
     ]].copy()
 
     tracker_df["date"] = slate_date
@@ -44,7 +47,7 @@ def main():
     # OVERWRITE DAILY TRACKER FILE
     # -----------------------------
     combined = tracker_df.copy()
-    
+
     # -----------------------------
     # SAVE
     # -----------------------------

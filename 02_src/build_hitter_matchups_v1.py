@@ -3,11 +3,36 @@ import sys
 import pandas as pd
 from datetime import datetime
 
+
+def normalize_team(series):
+    TEAM_MAP = {
+        "CWS": "CHW",
+        "CHW": "CHW",
+        "WSN": "WSH",
+        "WSH": "WSH"
+    }
+
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.upper()
+        .replace(TEAM_MAP)
+    )
+
+
+def normalize_name(series):
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
     # =========================================================
-    # 📅 Get slate date (from CLI or default to today)
+    # 📅 Get slate date
     # =========================================================
     if len(sys.argv) > 1:
         slate_date = sys.argv[1]
@@ -17,14 +42,11 @@ def main():
     # =========================================================
     # 📥 INPUT FILES
     # =========================================================
-
-    # FanDuel
     fd_path = os.path.join(
         base_dir,
         f"../01_data/raw/fanduel/FanDuel-MLB-{slate_date}.csv"
     )
 
-    # Vegas
     vegas_path = os.path.join(
         base_dir,
         "../01_data/raw/vegas",
@@ -34,7 +56,6 @@ def main():
     # =========================================================
     # 📤 OUTPUT
     # =========================================================
-
     output_path = os.path.join(
         base_dir,
         f"../03_output/hitter_matchups_dfs_{slate_date}.csv"
@@ -43,10 +64,8 @@ def main():
     # =========================================================
     # 📊 LOAD DATA
     # =========================================================
-
     df = pd.read_csv(fd_path)
 
-    # Load Vegas if exists
     if os.path.exists(vegas_path):
         vegas_df = pd.read_csv(vegas_path)
     else:
@@ -57,9 +76,25 @@ def main():
         ])
 
     # =========================================================
-    # 🎯 STEP 1: Extract starting pitchers
+    # 🔧 NORMALIZE VEGAS
     # =========================================================
+    vegas_df["team"] = normalize_team(vegas_df["team"])
+    vegas_df["opponent"] = normalize_team(vegas_df["opponent"])
 
+    # =========================================================
+    # 🔁 MAKE VEGAS BIDIRECTIONAL
+    # =========================================================
+    vegas_flip = vegas_df.rename(columns={
+        "team": "opponent",
+        "opponent": "team"
+    }).copy()
+
+    vegas_full = pd.concat([vegas_df, vegas_flip], ignore_index=True)
+    vegas_full = vegas_full.drop_duplicates(subset=["team", "opponent"])
+
+    # =========================================================
+    # 🎯 Extract pitchers
+    # =========================================================
     pitchers = df[
         (df["Position"] == "P") &
         (df["Probable Pitcher"] == "Yes")
@@ -73,11 +108,13 @@ def main():
         "Nickname": "opposing_pitcher"
     })
 
-    # =========================================================
-    # 🎯 STEP 2: Extract hitters
-    # =========================================================
+    pitchers["pitcher_team"] = normalize_team(pitchers["pitcher_team"])
+    pitchers["opposing_pitcher"] = normalize_name(pitchers["opposing_pitcher"])
 
-    hitters = df[df["Position"] != "P"][[
+    # =========================================================
+    # 🎯 Extract hitters
+    # =========================================================
+    hitters = df[df["Position"] != "P"][[ 
         "Nickname",
         "Team",
         "Opponent",
@@ -92,10 +129,13 @@ def main():
         "Position": "position"
     })
 
-    # =========================================================
-    # 🔗 STEP 3: Attach opposing pitcher
-    # =========================================================
+    hitters["player_name"] = normalize_name(hitters["player_name"])
+    hitters["team"] = normalize_team(hitters["team"])
+    hitters["opponent"] = normalize_team(hitters["opponent"])
 
+    # =========================================================
+    # 🔗 Attach opposing pitcher
+    # =========================================================
     merged = hitters.merge(
         pitchers,
         left_on="opponent",
@@ -104,10 +144,9 @@ def main():
     )
 
     # =========================================================
-    # 🧹 Clean base columns
+    # 🧹 Clean columns
     # =========================================================
-
-    merged = merged[[
+    merged = merged[[ 
         "player_name",
         "position",
         "team",
@@ -117,32 +156,30 @@ def main():
     ]]
 
     # =========================================================
-    # 💰 STEP 4: Filter Vegas to slate matchups
+    # 🔗 Merge Vegas
     # =========================================================
-
-    if not vegas_df.empty:
-        valid_matchups = merged[["team", "opponent"]].drop_duplicates()
-
-        vegas_df = vegas_df.merge(
-            valid_matchups,
-            on=["team", "opponent"],
-            how="inner"
-        )
-
-    # =========================================================
-    # 🔗 STEP 5: Merge Vegas data
-    # =========================================================
-
     merged = merged.merge(
-        vegas_df,
+        vegas_full,
         on=["team", "opponent"],
         how="left"
     )
 
     # =========================================================
+    # 🧱 FORCE NO MISSING VEGAS DATA
+    # =========================================================
+    missing_mask = merged["game_total"].isna()
+
+    if missing_mask.any():
+        print(f"Filling missing Vegas rows: {missing_mask.sum()}")
+
+        merged.loc[missing_mask, "game_total"] = merged["game_total"].mean()
+        merged.loc[missing_mask, "moneyline"] = 0
+        merged.loc[missing_mask, "spread"] = 0
+        merged.loc[missing_mask, "implied_team_total"] = merged["implied_team_total"].mean()
+
+    # =========================================================
     # 💾 SAVE
     # =========================================================
-
     merged.to_csv(output_path, index=False)
 
     print(f"✅ Matchups file saved to: {output_path}")

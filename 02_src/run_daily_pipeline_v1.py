@@ -49,19 +49,28 @@ def main():
     # STEP 0: VEGAS LINES
     run(f"python 02_src/fetch_vegas_lines_v1.py {today}")
 
-    # STEP 1: MATCHUPS
+    # STEP 1: WEATHER (NEW)
+    run(f"python 02_src/build_weather_context_v1.py {today}")
+
+    # STEP 2: WIND CONTEXT (NEW)
+    run(f"python 02_src/build_wind_context_v1.py {today}")
+
+    # STEP 3: WIND IMPACT (NEW)
+    run(f"python 02_src/build_wind_impact_v1.py {today}")
+
+    # STEP 4: MATCHUPS
     run(f"python 02_src/build_hitter_matchups_v1.py {today}")
 
-    # STEP 2: HITTER PROJECTIONS
+    # STEP 5: HITTER PROJECTIONS
     run(f"python 02_src/build_hitter_projections_v1.py {today}")
 
-    # STEP 3: PITCHER PROJECTIONS
+    # STEP 6: PITCHER PROJECTIONS
     run(f"python 02_src/build_pitcher_projections_v1.py {today}")
 
-    # STEP 4: DFS POOL
+    # STEP 7: DFS POOL
     run(f"python 02_src/build_dfs_pool_v1.py {today}")
 
-    # STEP 5: MANUAL HELPER
+    # STEP 8: MANUAL HELPER
     run(f"python 02_src/build_manual_dfs_helper_v1.py {today}")
 
     print("\n🔥 DAILY PIPELINE COMPLETE 🔥\n")

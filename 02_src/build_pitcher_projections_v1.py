@@ -29,7 +29,12 @@ def main():
     salary_df = pd.read_csv(salary_path)
 
     # -----------------------------
-    # FILTER PITCHERS FROM FD FILE
+    # NORMALIZE NAMES (MODEL DATA)
+    # -----------------------------
+    df["player_name"] = df["player_name"].apply(normalize_name)
+
+    # -----------------------------
+    # FILTER FD PROBABLE PITCHERS
     # -----------------------------
     pitcher_salary_df = salary_df[
         (salary_df["Position"] == "P") &
@@ -42,19 +47,17 @@ def main():
     )
 
     pitcher_salary_df["player_name"] = pitcher_salary_df["player_name"].apply(normalize_name)
-    df["player_name"] = df["player_name"].apply(normalize_name)
 
     pitcher_salary_df = pitcher_salary_df[["player_name", "Salary"]]
 
+    print(f"FD pitchers: {len(pitcher_salary_df)}")
+
     # -----------------------------
-    # PROJECTED IP
+    # PROJECT MODEL STATS
     # -----------------------------
     df["IP_per_game"] = df["IP"] / df["p_game"]
     df["projected_IP"] = df["IP_per_game"]
 
-    # -----------------------------
-    # STRIKEOUTS + EARNED RUNS
-    # -----------------------------
     df["K_per_IP"] = df["SO"] / df["IP"]
     df["proj_SO"] = df["projected_IP"] * df["K_per_IP"]
 
@@ -62,33 +65,20 @@ def main():
     df["proj_ER"] = df["projected_IP"] * df["ER_per_IP"]
 
     # -----------------------------
-    # MERGE SALARY
+    # USE FD AS SOURCE OF TRUTH
     # -----------------------------
-    df = df.merge(pitcher_salary_df, on="player_name", how="left")
-
-    # -----------------------------
-    # ADD MISSING FD PITCHERS
-    # -----------------------------
-    model_pitchers = set(df["player_name"])
-    fd_pitchers = set(pitcher_salary_df["player_name"])
-
-    missing_pitchers = fd_pitchers - model_pitchers
-
-    if missing_pitchers:
-        missing_rows = pitcher_salary_df[
-            pitcher_salary_df["player_name"].isin(missing_pitchers)
-        ].copy()
-
-        missing_rows["projected_IP"] = 5.0
-        missing_rows["proj_SO"] = 4.5
-        missing_rows["proj_ER"] = 2.5
-
-        df = pd.concat([df, missing_rows], ignore_index=True)
+    df = pitcher_salary_df.merge(
+        df,
+        on="player_name",
+        how="left"
+    )
 
     # -----------------------------
-    # KEEP ONLY SLATE PITCHERS
+    # FILL DEFAULTS FOR UNMATCHED
     # -----------------------------
-    df = df[df["Salary"].notna()].copy()
+    df["projected_IP"] = df["projected_IP"].fillna(5.0)
+    df["proj_SO"] = df["proj_SO"].fillna(4.5)
+    df["proj_ER"] = df["proj_ER"].fillna(2.5)
 
     # -----------------------------
     # FAN DUEL POINTS
