@@ -1,19 +1,141 @@
+# CHANGELOG
+
 This document tracks structural, data, and logic changes to the SkillEngine project.
 
 SkillEngine = core skill model only (no matchup context).
 
 ---
 
-## Architecture (Current State as of 1.3)
+## Architecture (Current State as of 1.4)
 
 * Storage Layer: Flat CSV files
 * Compute Layer: Python (local environment using .venv)
-* Data Source: Baseball Savant CSV exports + FanDuel + Vegas API
+* Data Sources:
+
+  * Baseball Savant CSV exports
+  * FanDuel salary/slate files
+  * Vegas API
+  * Weather / wind files
+  * Historical DFS recap master
+
 * Scope Boundary:
 
-  * SkillEngine → core skill metrics only
-  * MatchupEngine → contextual data (opponents, Vegas, slate)
-  * DFS Engine → projections, value scoring, and evaluation
+  * SkillEngine → core player skill metrics only
+  * MatchupEngine → opponents, handedness, weather, Vegas, slate context
+  * DFS Engine → projections, rankings, value scoring, trust/trend adjustments, evaluation
+  * Content Engine → article exports, helper sheets, publishing outputs
+
+---
+
+## [1.4] - 2026-04-23
+
+### Change Type
+
+Projection Logic / Evaluation / Publishing / Model Intelligence
+
+### What Changed
+
+### DFS Projection Engine Upgrades
+
+* Added historical trust / reliability layer to hitter and pitcher projections.
+
+New variables integrated:
+
+* `trust_score`
+* `bust_rate`
+* `smash_rate`
+* `quality_rate`
+* `avg_diff`
+* `games`
+
+* Added recap master trend engine to projections.
+
+New trend variables integrated:
+
+* `last_3_avg`
+* `last_5_avg`
+* `last_10_avg`
+* `trend_tag`
+* `trend_multiplier`
+* `trend_delta`
+
+### Hitter Projection Enhancements
+
+* Added weighted recent form score:
+
+  * 50% last_3_avg
+  * 30% last_5_avg
+  * 20% last_10_avg
+
+* Added trend-adjusted final hitter projection.
+* Added hot-player bonuses.
+* Added cold-player penalties.
+* Added regression controls for small sample sizes.
+
+### Pitcher Projection Enhancements
+
+* Added recent form weighting (lighter than hitters).
+* Added trust / bust / quality adjustments.
+* Added hot/cold pitcher modifiers.
+* Added safer weighting to prevent overreaction to streaks.
+
+### Matchup / Data Fixes
+
+* Corrected hitter handedness and opposing pitcher handedness merge issues caused by inconsistent name formats.
+* Restored platoon split accuracy in matchup generation.
+
+### Evaluation Engine Upgrades
+
+* Rebuilt `dfs_recap_master.csv` historical engine.
+* Restored rolling historical metrics:
+
+  * last_3_avg
+  * last_5_avg
+  * last_10_avg
+
+* Restored trend classification system.
+* Restored adjusted projection fields.
+
+### Manual Helper / Publishing Upgrades
+
+* Added automated article export file:
+
+  * `goatland_article_<DATE>.txt`
+
+* Added HTML-ready copy/paste sections for:
+
+  * Top Pitchers
+  * Top Hitters
+  * Top Stacks
+  * By Position
+
+* Improved daily content publishing workflow for WordPress.
+
+### Why It Changed
+
+* Reduce stale recommendations driven only by season-long averages.
+* Improve identification of hot players and slumping players.
+* Reduce lineup zeroes and volatile cash-game plays.
+* Improve projection realism using recent DFS outcomes.
+* Speed up daily publishing workflow.
+
+### Validation Performed
+
+* Confirmed hitter and pitcher projection files populate trend fields.
+* Verified recap master rolling averages updating correctly.
+* Confirmed trend multipliers applying to projections.
+* Confirmed helper file exports clean HTML article sections.
+* Confirmed historical metrics populate after 4/13 issue fix.
+* Manual spot-checks showed stronger rankings for in-form players.
+
+### Outputs Affected
+
+* hitter_projections_dfs_<DATE>.csv
+* pitcher_projections_dfs_<DATE>.csv
+* dfs_pool_<DATE>.csv
+* dfs_manual_helper_<DATE>.xlsx
+* goatland_article_<DATE>.txt
+* dfs_recap_master.csv
 
 ---
 
@@ -28,16 +150,20 @@ Pipeline / Architecture / Automation
 * Implemented full daily DFS pipeline:
 
   * `run_daily_pipeline_v1.py`
+
 * Standardized all scripts to use `slate_date` (removed all hardcoded dates)
+
 * Built DFS projection pipeline:
 
   * `build_hitter_projections_v1.py`
   * `build_pitcher_projections_v1.py`
   * `build_dfs_pool_v1.py`
   * `build_manual_dfs_helper_v1.py`
+
 * Integrated Vegas pipeline into daily workflow:
 
-  * `fetch_vegas_lines_v1.py` now runs before matchup generation
+  * `fetch_vegas_lines_v1.py`
+
 * Built post-slate evaluation pipeline:
 
   * `build_dfs_recap_v1.py`
@@ -45,6 +171,7 @@ Pipeline / Architecture / Automation
   * `combine_tracker_files_v1.py`
   * `build_player_hit_rates_v1.py`
   * `build_dfs_tracking_v1.py`
+
 * Established separation of pipelines:
 
   * Pre-slate (projections + recommendations)
@@ -52,25 +179,17 @@ Pipeline / Architecture / Automation
 
 ### Why It Changed
 
-* Eliminate manual script execution and dependency errors
-* Remove all hardcoded date issues causing incorrect outputs
-* Create a fully automated daily workflow
-* Enable consistent evaluation of model performance over time
+* Eliminate manual script execution and dependency errors.
+* Remove hardcoded date failures.
+* Create fully automated daily workflow.
+* Enable consistent long-term model evaluation.
 
 ### Validation Performed
 
-* Verified full pipeline runs successfully with single command
-* Confirmed correct file generation for:
-
-  * matchups
-  * projections
-  * DFS pool
-  * manual helper
-  * recap
-  * tracking
-  * hit rates
-* Confirmed Vegas data is properly integrated into matchups
-* Validated no hardcoded dates remain in pipeline scripts
+* Verified full pipeline runs successfully.
+* Confirmed correct file generation across all steps.
+* Validated Vegas integration.
+* Confirmed no hardcoded dates remain.
 
 ### Outputs Affected
 
@@ -90,31 +209,28 @@ Feature / Analysis
 
 ### What Changed
 
-* Implemented trend analysis layer for both hitters and pitchers.
-* Created hitter trends script: `analyze_hitter_trends.py`
-* Created pitcher trends script: `analyze_pitcher_trends.py`
-* Added year-over-year SkillScore comparison logic.
+* Implemented trend analysis layer for hitters and pitchers.
+* Added:
+
+  * `analyze_hitter_trends.py`
+  * `analyze_pitcher_trends.py`
+
+* Added year-over-year SkillScore comparisons.
 
 ### Why It Changed
 
-* Establish a foundation for identifying player performance direction (improving vs declining).
-* Enable future modeling and prediction based on historical skill movement.
+* Identify improving vs declining players.
+* Build future prediction signals.
 
 ### Validation Performed
 
-* Verified trend calculations for multiple players across seasons.
-* Confirmed correct sorting by `player_id` and `season`.
-* Manually validated:
-
-  * Previous season SkillScore (`prev_SkillScore_v1`)
-  * Skill score delta (`SkillScore_delta`)
-  * Trend flags (`declining`, `improving`)
-* Confirmed outputs generate without errors for both hitters and pitchers.
+* Verified trend calculations across seasons.
+* Confirmed proper sorting and deltas.
 
 ### Outputs Affected
 
-* 03_output/hitter_trends_v1.csv
-* 03_output/pitcher_trends_v1.csv
+* hitter_trends_v1.csv
+* pitcher_trends_v1.csv
 
 ---
 
@@ -126,41 +242,27 @@ Data Source / Pipeline / Schema
 
 ### What Changed
 
-* Migrated raw data source from FanGraphs exports to Baseball Savant.
-* Updated raw ingestion process using Savant Custom Leaderboards.
-* Implemented column mapping layer to standardize Savant fields into SkillEngine schema.
-* Added pitcher innings conversion logic to handle Savant IP notation (.1 = 1 out, .2 = 2 outs).
-* Implemented in-pipeline WHIP calculation from H, BB, and IP.
-* Updated scoring scripts to support `player_name` instead of `Name`.
-* Updated rate-stat handling to support `K_pct` and `BB_pct`.
-* Corrected ERA mapping (`p_era → ERA`).
-* Rebuilt master datasets and scoring pipeline using Savant-derived data.
+* Migrated from FanGraphs exports to Baseball Savant.
+* Added mapping layer.
+* Added IP conversion logic.
+* Added WHIP calculations.
+* Updated schema compatibility.
 
 ### Why It Changed
 
-* FanGraphs export functionality became restricted behind a membership requirement.
-* Baseball Savant provides stable, publicly accessible data with a consistent CSV export interface.
-* Establishing Savant as the raw source ensures long-term stability for the SkillEngine pipeline.
+* FanGraphs access restrictions.
+* Savant offered stable public source.
 
 ### Validation Performed
 
-* Confirmed raw Savant CSV ingestion.
-* Verified column mapping layer correctly standardizes schema.
-* Confirmed innings conversion produces correct decimal IP values.
-* Verified WHIP calculation accuracy.
-* Confirmed scoring scripts execute without schema errors.
-* Verified final ranking outputs generate successfully for both hitters and pitchers.
+* Verified ingestion and mapping.
+* Confirmed scoring outputs.
 
 ### Outputs Affected
 
 * 2025_hitters_master.csv
 * 2025_pitchers_master.csv
-* 2025_hitters_scored_v1.csv
-* 2025_pitchers_scored_v1.csv
-* 2025_hitters_ranked_v1.csv
-* 2025_pitchers_ranked_v1.csv
-* 2025_hitters_top50_v1.csv
-* 2025_pitchers_top50_v1.csv
+* ranked/scored outputs
 
 ---
 
@@ -172,44 +274,22 @@ Data / Logic / Output
 
 ### What Changed
 
-* Ingested 2025 season batting and pitching data.
-
-* Implemented qualification filters:
-
-  * Hitters: PA ≥ 200
-  * Pitchers: IP ≥ 80
-
-* Converted core metrics to percentiles.
-
-* Built SkillScore_v1 weighted formulas:
-
-  * Hitters: 0.45 OBP, 0.35 SLG, -0.20 K-rate
-  * Pitchers: 0.35 K-rate, -0.20 BB-rate, -0.25 WHIP, -0.20 ERA
-
-* Generated scored datasets.
-
-* Generated ranked datasets.
-
-* Exported Top 50 hitters and pitchers.
+* Built first complete 2025 skill model.
+* Qualification filters.
+* Percentile scoring.
+* SkillScore formulas for hitters and pitchers.
+* Rankings + Top 50 exports.
 
 ### Why It Changed
 
-* Establish first complete, end-to-end core skill evaluation system for the 2025 season.
+* Establish first complete end-to-end SkillEngine.
 
 ### Validation Performed
 
-* Confirmed qualification filters reduced dataset correctly.
-* Confirmed percentile transformation applied before weighting.
-* Verified ranking outputs sorted correctly by SkillScore.
-* Verified Top 50 exports reflect ranked order.
+* Confirmed rankings and outputs.
 
 ### Outputs Affected
 
 * 2025_hitters_master.csv
 * 2025_pitchers_master.csv
-* 2025_hitters_scored_v1.csv
-* 2025_pitchers_scored_v1.csv
-* 2025_hitters_ranked_v1.csv
-* 2025_pitchers_ranked_v1.csv
-* 2025_hitters_top50_v1.csv
-* 2025_pitchers_top50_v1.csv
+* ranked/scored outputs

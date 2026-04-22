@@ -1,18 +1,26 @@
 import os
 import sys
+import subprocess
 from datetime import datetime, timedelta
+
 
 def run(cmd):
     print(f"\n==============================")
     print(f"Running: {cmd}")
     print(f"==============================\n")
-    os.system(cmd)
+
+    result = subprocess.run(cmd, shell=True)
+
+    if result.returncode != 0:
+        print(f"\n❌ FAILED: {cmd}")
+        sys.exit(result.returncode)
+
 
 def main():
 
     if len(sys.argv) < 2:
         print("Usage: python run_daily_pipeline_v1.py <YYYY-MM-DD>")
-        return
+        sys.exit(1)
 
     today = sys.argv[1]
 
@@ -49,13 +57,13 @@ def main():
     # STEP 0: VEGAS LINES
     run(f"python 02_src/fetch_vegas_lines_v1.py {today}")
 
-    # STEP 1: WEATHER (NEW)
+    # STEP 1: WEATHER
     run(f"python 02_src/build_weather_context_v1.py {today}")
 
-    # STEP 2: WIND CONTEXT (NEW)
+    # STEP 2: WIND CONTEXT
     run(f"python 02_src/build_wind_context_v1.py {today}")
 
-    # STEP 3: WIND IMPACT (NEW)
+    # STEP 3: WIND IMPACT
     run(f"python 02_src/build_wind_impact_v1.py {today}")
 
     # STEP 4: MATCHUPS
@@ -74,6 +82,7 @@ def main():
     run(f"python 02_src/build_manual_dfs_helper_v1.py {today}")
 
     print("\n🔥 DAILY PIPELINE COMPLETE 🔥\n")
+
 
 if __name__ == "__main__":
     main()

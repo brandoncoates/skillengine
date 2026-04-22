@@ -28,6 +28,20 @@ def normalize_name(series):
     )
 
 
+def normalize_master_name(series):
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+        .apply(
+            lambda x: (
+                " ".join([p.strip() for p in x.split(",")[::-1]])
+                if "," in x else x
+            )
+        )
+    )
+
+
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -65,6 +79,9 @@ def main():
     # 📊 LOAD DATA
     # =========================================================
     df = pd.read_csv(fd_path)
+
+    # Remove players on IL
+    df = df[df["Injury Indicator"] != "IL"]
 
     if os.path.exists(vegas_path):
         vegas_df = pd.read_csv(vegas_path)
@@ -114,13 +131,15 @@ def main():
     # =========================================================
     # 🎯 Extract hitters
     # =========================================================
-    hitters = df[df["Position"] != "P"][[ 
-        "Nickname",
-        "Team",
-        "Opponent",
-        "Salary",
-        "Position"
-    ]].copy()
+    hitters = df[df["Position"] != "P"][
+        [
+            "Nickname",
+            "Team",
+            "Opponent",
+            "Salary",
+            "Position"
+        ]
+    ].copy()
 
     hitters = hitters.rename(columns={
         "Nickname": "player_name",
@@ -146,14 +165,51 @@ def main():
     # =========================================================
     # 🧹 Clean columns
     # =========================================================
-    merged = merged[[ 
-        "player_name",
-        "position",
-        "team",
-        "opponent",
-        "opposing_pitcher",
-        "Salary"
-    ]]
+    merged = merged[
+        [
+            "player_name",
+            "position",
+            "team",
+            "opponent",
+            "opposing_pitcher",
+            "Salary"
+        ]
+    ]
+
+    # =========================================================
+    # 🔗 Merge Player Handedness
+    # =========================================================
+    handedness_path = os.path.join(
+        base_dir,
+        "../01_data/processed/player_context/player_master.csv"
+    )
+
+    hand_df = pd.read_csv(handedness_path)
+
+    hand_df["player_name"] = normalize_master_name(hand_df["player_name"])
+    merged["player_name"] = normalize_name(merged["player_name"])
+
+    merged = merged.merge(
+        hand_df[["player_name", "bat_hand"]],
+        on="player_name",
+        how="left"
+    )
+
+    # =========================================================
+    # 🔗 Merge Pitcher Handedness
+    # =========================================================
+    hand_df["pitcher_name"] = hand_df["player_name"]
+    merged["opposing_pitcher"] = normalize_name(merged["opposing_pitcher"])
+
+    merged = merged.merge(
+        hand_df[["pitcher_name", "throw_hand"]],
+        left_on="opposing_pitcher",
+        right_on="pitcher_name",
+        how="left"
+    )
+
+    merged = merged.rename(columns={"throw_hand": "pitcher_hand"})
+    merged = merged.drop(columns=["pitcher_name"])
 
     # =========================================================
     # 🔗 Merge Vegas
